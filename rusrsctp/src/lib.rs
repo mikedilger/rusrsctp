@@ -53,6 +53,14 @@ pub struct Socket {
     inner: *mut socket,
 }
 
+impl Drop for Socket {
+    fn drop(&mut self) {
+        unsafe {
+            rusrsctp_sys::usrsctp_close(self.inner);
+        }
+    }
+}
+
 impl UsrSctp {
     pub fn socket(&self, inet6: bool, one_to_many: bool) -> Result<Socket, Errno> {
         let socket = unsafe {
