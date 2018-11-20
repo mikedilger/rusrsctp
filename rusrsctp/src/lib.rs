@@ -1,4 +1,5 @@
 
+extern crate errno;
 extern crate rusrsctp_sys;
 
 use std::sync::atomic::{AtomicBool, Ordering};

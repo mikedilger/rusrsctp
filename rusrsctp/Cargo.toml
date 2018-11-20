@@ -9,3 +9,4 @@ license = "MIT OR Apache-2.0, BSD3 for usrsctp"
 
 [dependencies]
 rusrsctp-sys = { path = "../rusrsctp-sys" }
+errno = "0.2"
