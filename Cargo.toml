@@ -1,6 +1,10 @@
 [package]
 name = "rusrsctp"
 version = "0.1.0"
+description = "Rust high-level bindings to usrsctp (userspace SCTP optionally over UDP)"
 authors = ["Mike Dilger <mike@optcomp.nz>"]
+readme = "README.md"
+repository = "https://git.optcomp.nz/mikedilger/rusrsctp"
+license = "MIT OR Apache-2.0, BSD3 for usrsctp"
 
 [dependencies]
