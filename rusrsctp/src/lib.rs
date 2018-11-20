@@ -12,12 +12,19 @@ static SOCK_SEQPACKET: c_int = 5;
 
 static INITIALIZED: AtomicBool = AtomicBool::new(false);
 
+#[cfg(test)]
+mod tests;
+
 pub struct UsrSctp {}
 
 /// An object representing the SCTP networking system.
 impl UsrSctp {
     /// Initialize SCTP.  You can only have one of these; Subsequent calls to this
     /// function will return None as long as you have an SCTP object still alive.
+    /// If port is specified, SCTP will run over UDP (which traverses NAT and is
+    /// generally more available over the Internet at large); otherwise SCTP will
+    /// run over IP directly.  IANA has assigned 9899 as the SCTP over UDP port,
+    /// but you don't have to use that one.
     pub fn new(port: Option<u16>) -> Option<UsrSctp>
     {
         // If it was false, make it true and enter this block
@@ -49,11 +56,13 @@ impl Drop for UsrSctp {
 }
 
 #[allow(dead_code)]
-pub struct Socket {
+pub struct Socket<'a> {
     inner: *mut socket,
+    // keep a reference to UsrSctp, so that socket objects cannot outlive UsrSctp
+    _sctp: &'a UsrSctp
 }
 
-impl Drop for Socket {
+impl<'a> Drop for Socket<'a> {
     fn drop(&mut self) {
         unsafe {
             rusrsctp_sys::usrsctp_close(self.inner);
@@ -78,7 +87,8 @@ impl UsrSctp {
             Err(errno::errno())
         } else {
             Ok(Socket {
-                inner: socket
+                inner: socket,
+                _sctp: &self
             })
         }
     }
