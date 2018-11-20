@@ -3,5 +3,9 @@ name = "rusrsctp-sys"
 version = "0.1.0"
 description = "Rust bindings to usrsctp (userspace SCTP optionally over UDP)"
 authors = ["Mike Dilger <mike@optcomp.nz>"]
+build = "build.rs"
+
+[build-dependencies]
+bindgen = "0.42.2"
 
 [dependencies]
