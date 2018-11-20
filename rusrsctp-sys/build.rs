@@ -27,8 +27,9 @@ fn main() {
         .expect("Failed to run make in ../usrsctp");
 
     // Tell cargo to tell rustc to link the library.
+    let libdir = fs::canonicalize("../usrsctp/usrsctplib/.libs").unwrap();
     println!("cargo:rustc-link-lib=usrsctp");
-    println!("cargo:rustc-link-search=../usrsctp/usrsctplib");
+    println!("cargo:rustc-link-search={}", libdir.to_str().unwrap());
 
     // The bindgen::Builder is the main entry point
     // to bindgen, and lets you build up options for
