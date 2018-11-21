@@ -59,7 +59,8 @@ impl Drop for UsrSctp {
 #[allow(dead_code)]
 pub struct Socket<'a, T: 'a + Ip> {
     inner: *mut socket,
-    // keep a reference to UsrSctp, so that socket objects cannot outlive UsrSctp
+    // Type parameterize a Socket with Ip (v4 or v6), while also using a reference
+    // with the lifetime of UsrSctp so that socket objects cannot outlive UsrSctp.
     _ip: PhantomData<&'a T>,
 }
 
