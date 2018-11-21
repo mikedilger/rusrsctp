@@ -9,6 +9,8 @@ usrsctp (used by rusrsctp) is:
 This library provides rust bindings to usrsctp, a userspace SCTP library which operates either
 at the IP layer or over UDP.
 
+THIS LIBRARY IS NEW AND NOT YET FUNCTIONAL.
+
 ## Motivation
 
 For some networking tasks, neither TCP nor UDP provide a good solution. These situations
