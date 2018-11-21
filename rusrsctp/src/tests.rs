@@ -2,11 +2,22 @@
 use super::*;
 
 #[test]
-fn setup_and_teardown() {
+fn setup_and_teardown4() {
     {
         let sctp = UsrSctp::new(Some(9899)).unwrap();
         {
             let _socket = sctp.socket::<Ipv4>(false).unwrap();
+        } // socket drops here
+    } // sctp drops here
+    assert!(true)
+}
+
+#[test]
+fn setup_and_teardown6() {
+    {
+        let sctp = UsrSctp::new(Some(9899)).unwrap();
+        {
+            let _socket = sctp.socket::<Ipv6>(false).unwrap();
         } // socket drops here
     } // sctp drops here
     assert!(true)
