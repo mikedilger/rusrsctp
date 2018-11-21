@@ -7,14 +7,18 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::os::raw::c_int;
 use std::ptr;
 use errno::Errno;
-use rusrsctp_sys::{PF_INET, PF_INET6, IPPROTO_SCTP, socket};
+use rusrsctp_sys::{IPPROTO_SCTP, socket};
+
+#[cfg(test)]
+mod tests;
+
+mod ip;
+pub use self::ip::*;
+
 static SOCK_STREAM: c_int = 1;
 static SOCK_SEQPACKET: c_int = 5;
 
 static INITIALIZED: AtomicBool = AtomicBool::new(false);
-
-#[cfg(test)]
-mod tests;
 
 pub struct UsrSctp {}
 
@@ -56,34 +60,6 @@ impl Drop for UsrSctp {
     }
 }
 
-#[allow(dead_code)]
-pub struct Socket<'a, T: 'a + Ip> {
-    inner: *mut socket,
-    // Type parameterize a Socket with Ip (v4 or v6), while also using a reference
-    // with the lifetime of UsrSctp so that socket objects cannot outlive UsrSctp.
-    _ip: PhantomData<&'a T>,
-}
-
-impl<'a, T: 'a + Ip> Drop for Socket<'a, T> {
-    fn drop(&mut self) {
-        unsafe {
-            rusrsctp_sys::usrsctp_close(self.inner);
-        }
-    }
-}
-
-pub trait Ip {
-    fn pf() -> i32;
-}
-pub struct Ipv4;
-impl Ip for Ipv4 {
-    fn pf() -> i32 { PF_INET as i32 }
-}
-pub struct Ipv6;
-impl Ip for Ipv6 {
-    fn pf() -> i32 { PF_INET6 as i32 }
-}
-
 impl UsrSctp {
     pub fn socket<'a, T: 'a + Ip>(&'a self, one_to_many: bool) -> Result<Socket<'a, T>, Errno> {
         let socket = unsafe {
@@ -104,6 +80,22 @@ impl UsrSctp {
                 inner: socket,
                 _ip: PhantomData
             })
+        }
+    }
+}
+
+#[allow(dead_code)]
+pub struct Socket<'a, T: 'a + Ip> {
+    inner: *mut socket,
+    // Type parameterize a Socket with Ip (v4 or v6), while also using a reference
+    // with the lifetime of UsrSctp so that socket objects cannot outlive UsrSctp.
+    _ip: PhantomData<&'a T>,
+}
+
+impl<'a, T: 'a + Ip> Drop for Socket<'a, T> {
+    fn drop(&mut self) {
+        unsafe {
+            rusrsctp_sys::usrsctp_close(self.inner);
         }
     }
 }
