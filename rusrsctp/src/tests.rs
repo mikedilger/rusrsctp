@@ -4,7 +4,7 @@ use super::*;
 #[test]
 fn setup_and_teardown4() {
     {
-        let sctp = UsrSctp::new(Some(9899)).unwrap();
+        let sctp = UsrSctp::new(Some(9899));
         {
             let _socket = sctp.socket::<Ipv4>(false).unwrap();
         } // socket drops here
@@ -15,7 +15,7 @@ fn setup_and_teardown4() {
 #[test]
 fn setup_and_teardown6() {
     {
-        let sctp = UsrSctp::new(Some(9899)).unwrap();
+        let sctp = UsrSctp::new(Some(9899));
         {
             let _socket = sctp.socket::<Ipv6>(false).unwrap();
         } // socket drops here
@@ -28,7 +28,7 @@ fn setup_and_teardown6() {
 #[should_fail_to_compile(expected = "error[E0597]: `sctp` does not live long enough")]
 fn test_socket_outlive_usrsctp() {
     let socket = {
-        let sctp = UsrSctp::new(Some(9899)).unwrap();
+        let sctp = UsrSctp::new(Some(9899));
         sctp.socket::<Ipv4>(false).unwrap()
     };
     assert!(true)

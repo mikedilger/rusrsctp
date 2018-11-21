@@ -3,9 +3,11 @@ extern crate errno;
 extern crate rusrsctp_sys;
 
 use std::marker::PhantomData;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
 use std::os::raw::c_int;
 use std::ptr;
+use std::thread;
+use std::time;
 use errno::Errno;
 use rusrsctp_sys::{IPPROTO_SCTP, socket};
 
@@ -18,45 +20,55 @@ pub use self::ip::*;
 static SOCK_STREAM: c_int = 1;
 static SOCK_SEQPACKET: c_int = 5;
 
+static REFCOUNT: AtomicUsize = AtomicUsize::new(0);
+// We set this true AFTER intialization is complete (we bump REFCOUNT before)
 static INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 pub struct UsrSctp {}
 
 /// An object representing the SCTP networking system.
 impl UsrSctp {
-    /// Initialize SCTP.  You can only have one of these; Subsequent calls to this
-    /// function will return None as long as you have an SCTP object still alive.
+    /// Initialize SCTP.
     /// If port is specified, SCTP will run over UDP (which traverses NAT and is
     /// generally more available over the Internet at large); otherwise SCTP will
     /// run over IP directly.  IANA has assigned 9899 as the SCTP over UDP port,
     /// but you don't have to use that one.
-    pub fn new(port: Option<u16>) -> Option<UsrSctp>
+    pub fn new(port: Option<u16>) -> UsrSctp
     {
-        // If it was false, make it true and enter this block
-        if !INITIALIZED.compare_and_swap(false, true, Ordering::SeqCst) {
-            // Initialize usrsctp
+        // If it was 0, make it 1 and enter this block
+        if REFCOUNT.fetch_add(1, Ordering::SeqCst) == 0 {
+            // We were the first!  We get to initialize
             unsafe {
                 rusrsctp_sys::usrsctp_init(port.unwrap_or(0),
                                            None, // conn_output not supported (yet)
                                            None); // debug_printf not supported (yet)
             }
-
-            Some(UsrSctp {})
+            INITIALIZED.store(true, Ordering::SeqCst);
+        } else {
+            // Only proceed once INITIALIZED is true -- other thread could be
+            // still working on initialization
+            let mut safety: usize = 0;
+            while !INITIALIZED.load(Ordering::SeqCst) {
+                thread::sleep(time::Duration::from_millis(1));
+                safety += 1;
+                if safety > 1000 {
+                    panic!("Waiting >1s for SCTP to initialize");
+                }
+            }
         }
-        else {
-            None
-        }
+        UsrSctp {}
     }
 }
 
 impl Drop for UsrSctp {
     fn drop(&mut self) {
-        unsafe {
-            // FIXME: this can return -1 on error, although I don't know what
-            // I should do in that case.
-            rusrsctp_sys::usrsctp_finish();
+        if REFCOUNT.fetch_sub(1, Ordering::SeqCst) == 1 {
+            unsafe {
+                // FIXME: this can return -1 on error, although I don't know what
+                // I should do in that case.
+                rusrsctp_sys::usrsctp_finish();
+            }
         }
-        INITIALIZED.store(false, Ordering::SeqCst);
     }
 }
 
