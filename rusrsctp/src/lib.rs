@@ -6,6 +6,7 @@ use std::marker::PhantomData;
 use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
 use std::os::raw::c_int;
 use std::ptr;
+use std::mem;
 use std::thread;
 use std::time;
 use errno::Errno;
@@ -108,6 +109,22 @@ impl<'a, T: 'a + Ip> Drop for Socket<'a, T> {
     fn drop(&mut self) {
         unsafe {
             rusrsctp_sys::usrsctp_close(self.inner);
+        }
+    }
+}
+
+impl<'a, T: 'a + Ip> Socket<'a, T> {
+    pub fn bind(&mut self, addr: T::Addr, port: u16) {
+        let mut sockaddr = T::sockaddr(addr, port);
+        unsafe {
+            use ::std::os::raw::c_void;
+            use rusrsctp_sys::sockaddr;
+            // We cannot transmute, we have to pass the pointer through the void.C world did.
+            rusrsctp_sys::usrsctp_bind(
+                self.inner,
+                &mut sockaddr as *mut T::Sockaddr as *mut c_void as *mut sockaddr,
+                mem::size_of::<T::Sockaddr>() as u32
+            );
         }
     }
 }

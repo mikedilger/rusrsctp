@@ -1,4 +1,5 @@
 
+use std::net::{Ipv4Addr, Ipv6Addr};
 use super::*;
 
 #[test]
@@ -34,3 +35,21 @@ fn test_socket_outlive_usrsctp() {
     assert!(true)
 }
  */
+
+#[test]
+fn bind4() {
+    let sctp = UsrSctp::new(Some(9899));
+    {
+        let mut socket = sctp.socket::<Ipv4>(false).unwrap();
+        socket.bind(Ipv4Addr::new(127, 0, 0, 1), 5000);
+    }
+}
+
+#[test]
+fn bind6() {
+    let sctp = UsrSctp::new(Some(9899));
+    {
+        let mut socket = sctp.socket::<Ipv6>(false).unwrap();
+        socket.bind(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 5000);
+    }
+}
