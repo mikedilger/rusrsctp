@@ -91,7 +91,7 @@ impl UsrSctp {
         } else {
             Ok(Socket {
                 inner: socket,
-                _ip: PhantomData
+                _ip: PhantomData,
             })
         }
     }
@@ -124,6 +124,20 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
                 self.inner,
                 &mut sockaddr as *mut T::Sockaddr as *mut c_void as *mut sockaddr,
                 mem::size_of::<T::Sockaddr>() as u32
+            )
+        };
+        if rval < 0 {
+            Err(errno::errno())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn listen(&mut self, backlog: i32) -> Result<(), Errno> {
+        let rval = unsafe {
+            rusrsctp_sys::usrsctp_listen(
+                self.inner,
+                backlog
             )
         };
         if rval < 0 {
