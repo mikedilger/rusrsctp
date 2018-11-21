@@ -2,6 +2,7 @@
 extern crate errno;
 extern crate rusrsctp_sys;
 
+use std::marker::PhantomData;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::os::raw::c_int;
 use std::ptr;
@@ -56,13 +57,13 @@ impl Drop for UsrSctp {
 }
 
 #[allow(dead_code)]
-pub struct Socket<'a> {
+pub struct Socket<'a, T: 'a + Ip> {
     inner: *mut socket,
     // keep a reference to UsrSctp, so that socket objects cannot outlive UsrSctp
-    _sctp: &'a UsrSctp
+    _ip: PhantomData<&'a T>,
 }
 
-impl<'a> Drop for Socket<'a> {
+impl<'a, T: 'a + Ip> Drop for Socket<'a, T> {
     fn drop(&mut self) {
         unsafe {
             rusrsctp_sys::usrsctp_close(self.inner);
@@ -70,11 +71,23 @@ impl<'a> Drop for Socket<'a> {
     }
 }
 
+pub trait Ip {
+    fn pf() -> i32;
+}
+pub struct Ipv4;
+impl Ip for Ipv4 {
+    fn pf() -> i32 { PF_INET as i32 }
+}
+pub struct Ipv6;
+impl Ip for Ipv6 {
+    fn pf() -> i32 { PF_INET6 as i32 }
+}
+
 impl UsrSctp {
-    pub fn socket(&self, inet6: bool, one_to_many: bool) -> Result<Socket, Errno> {
+    pub fn socket<'a, T: 'a + Ip>(&'a self, one_to_many: bool) -> Result<Socket<'a, T>, Errno> {
         let socket = unsafe {
             rusrsctp_sys::usrsctp_socket(
-                if inet6 { PF_INET6 as i32 } else { PF_INET as i32 }, // domain
+                T::pf(),
                 if one_to_many { SOCK_SEQPACKET } else { SOCK_STREAM }, // type
                 IPPROTO_SCTP as i32,
                 None, // callback API (receive_cb) not supported (yet)
@@ -88,7 +101,7 @@ impl UsrSctp {
         } else {
             Ok(Socket {
                 inner: socket,
-                _sctp: &self
+                _ip: PhantomData
             })
         }
     }
