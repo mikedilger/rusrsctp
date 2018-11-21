@@ -114,9 +114,9 @@ impl<'a, T: 'a + Ip> Drop for Socket<'a, T> {
 }
 
 impl<'a, T: 'a + Ip> Socket<'a, T> {
-    pub fn bind(&mut self, addr: T::Addr, port: u16) {
+    pub fn bind(&mut self, addr: T::Addr, port: u16) -> Result<(), Errno> {
         let mut sockaddr = T::sockaddr(addr, port);
-        unsafe {
+        let rval = unsafe {
             use ::std::os::raw::c_void;
             use rusrsctp_sys::sockaddr;
             // We cannot transmute, we have to pass the pointer through the void.C world did.
@@ -124,7 +124,12 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
                 self.inner,
                 &mut sockaddr as *mut T::Sockaddr as *mut c_void as *mut sockaddr,
                 mem::size_of::<T::Sockaddr>() as u32
-            );
+            )
+        };
+        if rval < 0 {
+            Err(errno::errno())
+        } else {
+            Ok(())
         }
     }
 }
