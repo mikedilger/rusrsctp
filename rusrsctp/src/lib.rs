@@ -115,7 +115,7 @@ impl<'a, T: 'a + Ip> Drop for Socket<'a, T> {
 
 impl<'a, T: 'a + Ip> Socket<'a, T> {
     pub fn bind(&mut self, addr: T::Addr, port: u16) -> Result<(), Errno> {
-        let mut sockaddr = T::sockaddr(addr, port);
+        let mut sockaddr = T::to_sockaddr(addr, port);
         let rval = unsafe {
             use ::std::os::raw::c_void;
             use rusrsctp_sys::sockaddr;
