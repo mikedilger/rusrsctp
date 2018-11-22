@@ -74,3 +74,26 @@ fn listen6() {
         socket.listen(8).unwrap();
     }
 }
+
+/*
+#[test]
+fn accept4() {
+    let sctp = UsrSctp::new(Some(9899));
+    {
+        let mut socket = sctp.socket::<Ipv4>(true).unwrap();
+        socket.bind(Ipv4Addr::new(0, 0, 0, 0), 0).unwrap(); // wildcard addr and port
+        socket.listen(8).unwrap();
+    }
+
+}
+
+#[test]
+fn accept6() {
+    let sctp = UsrSctp::new(Some(9899));
+    {
+        let mut socket = sctp.socket::<Ipv6>(true).unwrap();
+        socket.bind(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap(); // wildcard addr and port
+        socket.listen(8).unwrap();
+    }
+}
+*/

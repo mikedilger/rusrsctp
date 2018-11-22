@@ -113,6 +113,9 @@ impl<'a, T: 'a + Ip> Drop for Socket<'a, T> {
     }
 }
 
+// fixme: for Ipv6, bind accepts either Ipv4 or Ipv6.  In our coding, we are
+// forcing it to Ipv6
+
 impl<'a, T: 'a + Ip> Socket<'a, T> {
     pub fn bind(&mut self, addr: T::Addr, port: u16) -> Result<(), Errno> {
         let mut sockaddr = T::to_sockaddr(addr, port);
@@ -144,6 +147,31 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
             Err(errno::errno())
         } else {
             Ok(())
+        }
+    }
+
+    pub fn accept(&mut self) -> Result<(T::Addr, u16, Socket<'a, T>), Errno> {
+        // space for return value
+        let mut sockaddr: T::Sockaddr = T::to_sockaddr_wildcard();
+        let mut sockaddr_len: u32 = 0;
+        let socket = unsafe {
+            use ::std::os::raw::c_void;
+            use rusrsctp_sys::sockaddr;
+            // We cannot transmute, we have to pass the pointer through the void.C world did.
+            rusrsctp_sys::usrsctp_accept(
+                self.inner,
+                &mut sockaddr as *mut T::Sockaddr as *mut c_void as *mut sockaddr,
+                &mut sockaddr_len as *mut u32
+            )
+        };
+        if socket.is_null() {
+            Err(errno::errno())
+        } else {
+            let (addr, port) = T::from_sockaddr(sockaddr);
+            Ok((addr, port, Socket {
+                inner: socket,
+                _ip: PhantomData,
+            }))
         }
     }
 }
