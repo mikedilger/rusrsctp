@@ -173,6 +173,24 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
         }
     }
 
+    pub fn connect(&mut self, addr: T::Addr, port: u16) -> Result<(), Errno> {
+        let mut sa = T::to_sockaddr(addr, port);
+        let rval = unsafe {
+            use ::std::os::raw::c_void;
+            // We cannot transmute, we have to pass the pointer through the void.C world did.
+            usrsctp_connect(
+                self.inner,
+                &mut sa as *mut T::Sockaddr as *mut c_void as *mut sockaddr,
+                mem::size_of::<T::Sockaddr>() as u32
+            )
+        };
+        if rval < 0 {
+            Err(errno::errno())
+        } else {
+            Ok(())
+        }
+    }
+
     pub fn set_non_blocking(&mut self, onoff: bool) -> Result<(), Errno> {
         let rval = unsafe {
             usrsctp_set_non_blocking(
