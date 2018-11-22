@@ -30,10 +30,13 @@ pub struct UsrSctp {}
 /// An object representing the SCTP networking system.
 impl UsrSctp {
     /// Initialize SCTP.
-    /// If port is specified, SCTP will run over UDP (which traverses NAT and is
-    /// generally more available over the Internet at large); otherwise SCTP will
-    /// run over IP directly.  IANA has assigned 9899 as the SCTP over UDP port,
-    /// but you don't have to use that one.
+    /// If port is specified, SCTP will run over UDP (which traverses NAT
+    /// and is generally more available over the Internet at large); otherwise SCTP
+    /// will run over IP directly.  IANA has assigned 9899 as the SCTP over UDP port,
+    /// but you don't have to use that one.  Communications within SCTP use their
+    /// own notion of ports independent of this UDP layer port.
+    /// If another thread (or the current one) already started SCTP, `port` will
+    /// be ignored and the already setup SCTP will be used.
     pub fn new(port: Option<u16>) -> UsrSctp
     {
         // If it was 0, make it 1 and enter this block
@@ -113,6 +116,7 @@ impl<'a, T: 'a + Ip> Drop for Socket<'a, T> {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub enum Shutdown {
     Rd,
     Wr,
