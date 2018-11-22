@@ -75,28 +75,41 @@ fn listen6() {
     }
 }
 
-/*
 #[test]
 fn accept4() {
     let sctp = UsrSctp::new(Some(9899));
     {
-        let mut socket = sctp.socket::<Ipv4>(true).unwrap();
+        let mut socket = sctp.socket::<Ipv4>(false).unwrap();
+        socket.set_non_blocking(true).unwrap();
         socket.bind(Ipv4Addr::new(0, 0, 0, 0), 0).unwrap(); // wildcard addr and port
         socket.listen(8).unwrap();
+        match socket.accept() {
+            Ok(_) => (), // unlikely, but not a failure
+            Err(e) => {
+                let ei: i32 = e.into();
+                assert_eq!(ei as u32, EWOULDBLOCK);
+            }
+        };
     }
-
 }
 
 #[test]
 fn accept6() {
     let sctp = UsrSctp::new(Some(9899));
     {
-        let mut socket = sctp.socket::<Ipv6>(true).unwrap();
+        let mut socket = sctp.socket::<Ipv6>(false).unwrap();
+        socket.set_non_blocking(true).unwrap();
         socket.bind(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap(); // wildcard addr and port
         socket.listen(8).unwrap();
+        match socket.accept() {
+            Ok(_) => (), // unlikely, but not a failure
+            Err(e) => {
+                let ei: i32 = e.into();
+                assert_eq!(ei as u32, EWOULDBLOCK);
+            }
+        };
     }
 }
-*/
 
 #[test]
 fn non_blocking() {
