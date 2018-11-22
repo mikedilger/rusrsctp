@@ -1,3 +1,63 @@
+//! `rusrsctp` =  Rust (Userland (Stream Control Transmission Protocol))
+//!
+//! For high level information, refer to the README.md file.
+//!
+//! This library provides rust bindings to `usrsctp`, a userspace SCTP library written
+//! in C which operates either at the IP layer or over UDP.
+//!
+//! Example server:
+//! ```
+//! # extern crate rusrsctp;
+//! # use rusrsctp::*;
+//! # use std::net::Ipv6Addr;
+//! # fn main() {
+//! /// Start SCTP over the IANA-assigned tunnelling port
+//! let sctp = UsrSctp::new(Some(9899));
+//!
+//! // Create an IPv6 socket in one-to-one mode
+//! let mut socket = sctp.socket::<Ipv6>(false).unwrap();
+//!
+//! // Bind to wildcard address, port 5000
+//! socket.bind(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 5000).unwrap();
+//!
+//! // Listen with a backlog of 8
+//! socket.listen(8).unwrap();
+//!
+//! // Accept a connection (you probably want to loop and handle in another thread, or
+//! // use a state machine (mio, tokio, etc)).
+//! # socket.set_non_blocking(true).unwrap();
+//! if let Ok((_remote_addr, _remote_port, client_socket)) =  socket.accept() {
+//!   // do client_socket.sendv() and client_socket.recvv() operations...
+//!
+//!   // client_socket will close on drop
+//! }
+//!
+//! // socket will close on drop
+//! # ; }
+//! ```
+//!
+//! Example client:
+//! ```
+//! # extern crate rusrsctp;
+//! # use rusrsctp::*;
+//! # use std::net::Ipv6Addr;
+//! # fn main() {
+//! /// Start SCTP over the IANA-assigned tunnelling port
+//! let sctp = UsrSctp::new(Some(9899));
+//!
+//! // Create an IPv6 socket in one-to-one mode
+//! let mut socket = sctp.socket::<Ipv6>(false).unwrap();
+//!
+//! // Connect to a server (use a real IP address, and prepare to wait)
+//! # socket.set_non_blocking(true).unwrap();
+//! // socket.connect(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 5000).unwrap();
+//!
+//! // do socket.sendv() and socket.recvv() operations...
+//!
+//! // socket will close on drop
+//! # ; }
+//! ```
+
 
 extern crate errno;
 extern crate rusrsctp_sys;
