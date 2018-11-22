@@ -97,3 +97,15 @@ fn accept6() {
     }
 }
 */
+
+#[test]
+fn non_blocking() {
+    let sctp = UsrSctp::new(Some(9899));
+    {
+        let mut socket = sctp.socket::<Ipv4>(true).unwrap();
+        socket.set_non_blocking(true).unwrap();
+        assert_eq!(socket.get_non_blocking().unwrap(), true);
+        socket.set_non_blocking(false).unwrap();
+        assert_eq!(socket.get_non_blocking().unwrap(), false);
+    }
+}

@@ -172,4 +172,32 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
             }))
         }
     }
+
+    pub fn set_non_blocking(&mut self, onoff: bool) -> Result<(), Errno> {
+        let rval = unsafe {
+            usrsctp_set_non_blocking(
+                self.inner,
+                if onoff { 1 } else { 0 }
+            )
+        };
+        if rval < 0 {
+            Err(errno::errno())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn get_non_blocking(&mut self) -> Result<bool, Errno> {
+        let rval = unsafe {
+            usrsctp_get_non_blocking(
+                self.inner)
+        };
+        if rval < 0 {
+            Err(errno::errno())
+        } else if rval > 0 {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
 }
