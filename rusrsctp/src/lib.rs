@@ -10,7 +10,7 @@ use std::mem;
 use std::thread;
 use std::time;
 use errno::Errno;
-use rusrsctp_sys::{IPPROTO_SCTP, socket};
+use rusrsctp_sys::*;
 
 #[cfg(test)]
 mod tests;
@@ -40,9 +40,9 @@ impl UsrSctp {
         if REFCOUNT.fetch_add(1, Ordering::SeqCst) == 0 {
             // We were the first!  We get to initialize
             unsafe {
-                rusrsctp_sys::usrsctp_init(port.unwrap_or(0),
-                                           None, // conn_output not supported (yet)
-                                           None); // debug_printf not supported (yet)
+                usrsctp_init(port.unwrap_or(0),
+                             None, // conn_output not supported (yet)
+                             None); // debug_printf not supported (yet)
             }
             INITIALIZED.store(true, Ordering::SeqCst);
         } else {
@@ -67,7 +67,7 @@ impl Drop for UsrSctp {
             unsafe {
                 // FIXME: this can return -1 on error, although I don't know what
                 // I should do in that case.
-                rusrsctp_sys::usrsctp_finish();
+                usrsctp_finish();
             }
         }
     }
@@ -75,8 +75,8 @@ impl Drop for UsrSctp {
 
 impl UsrSctp {
     pub fn socket<'a, T: 'a + Ip>(&'a self, one_to_many: bool) -> Result<Socket<'a, T>, Errno> {
-        let socket = unsafe {
-            rusrsctp_sys::usrsctp_socket(
+        let so = unsafe {
+            usrsctp_socket(
                 T::pf(),
                 if one_to_many { SOCK_SEQPACKET } else { SOCK_STREAM }, // type
                 IPPROTO_SCTP as i32,
@@ -86,11 +86,11 @@ impl UsrSctp {
                 ptr::null_mut() // ulp_info is irrelevant without receive_cp
             )
         };
-        if socket.is_null() {
+        if so.is_null() {
             Err(errno::errno())
         } else {
             Ok(Socket {
-                inner: socket,
+                inner: so,
                 _ip: PhantomData,
             })
         }
@@ -108,7 +108,7 @@ pub struct Socket<'a, T: 'a + Ip> {
 impl<'a, T: 'a + Ip> Drop for Socket<'a, T> {
     fn drop(&mut self) {
         unsafe {
-            rusrsctp_sys::usrsctp_close(self.inner);
+            usrsctp_close(self.inner);
         }
     }
 }
@@ -118,14 +118,13 @@ impl<'a, T: 'a + Ip> Drop for Socket<'a, T> {
 
 impl<'a, T: 'a + Ip> Socket<'a, T> {
     pub fn bind(&mut self, addr: T::Addr, port: u16) -> Result<(), Errno> {
-        let mut sockaddr = T::to_sockaddr(addr, port);
+        let mut sa = T::to_sockaddr(addr, port);
         let rval = unsafe {
             use ::std::os::raw::c_void;
-            use rusrsctp_sys::sockaddr;
             // We cannot transmute, we have to pass the pointer through the void.C world did.
-            rusrsctp_sys::usrsctp_bind(
+            usrsctp_bind(
                 self.inner,
-                &mut sockaddr as *mut T::Sockaddr as *mut c_void as *mut sockaddr,
+                &mut sa as *mut T::Sockaddr as *mut c_void as *mut sockaddr,
                 mem::size_of::<T::Sockaddr>() as u32
             )
         };
@@ -138,7 +137,7 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
 
     pub fn listen(&mut self, backlog: i32) -> Result<(), Errno> {
         let rval = unsafe {
-            rusrsctp_sys::usrsctp_listen(
+            usrsctp_listen(
                 self.inner,
                 backlog
             )
@@ -152,24 +151,23 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
 
     pub fn accept(&mut self) -> Result<(T::Addr, u16, Socket<'a, T>), Errno> {
         // space for return value
-        let mut sockaddr: T::Sockaddr = T::to_sockaddr_wildcard();
-        let mut sockaddr_len: u32 = 0;
-        let socket = unsafe {
+        let mut sa: T::Sockaddr = T::to_sockaddr_wildcard();
+        let mut sa_len: u32 = 0;
+        let so = unsafe {
             use ::std::os::raw::c_void;
-            use rusrsctp_sys::sockaddr;
             // We cannot transmute, we have to pass the pointer through the void.C world did.
-            rusrsctp_sys::usrsctp_accept(
+            usrsctp_accept(
                 self.inner,
-                &mut sockaddr as *mut T::Sockaddr as *mut c_void as *mut sockaddr,
-                &mut sockaddr_len as *mut u32
+                &mut sa as *mut T::Sockaddr as *mut c_void as *mut sockaddr,
+                &mut sa_len as *mut u32
             )
         };
-        if socket.is_null() {
+        if so.is_null() {
             Err(errno::errno())
         } else {
-            let (addr, port) = T::from_sockaddr(sockaddr);
+            let (addr, port) = T::from_sockaddr(sa);
             Ok((addr, port, Socket {
-                inner: socket,
+                inner: so,
                 _ip: PhantomData,
             }))
         }
