@@ -113,6 +113,12 @@ impl<'a, T: 'a + Ip> Drop for Socket<'a, T> {
     }
 }
 
+pub enum Shutdown {
+    Rd,
+    Wr,
+    RdWr
+}
+
 // fixme: for Ipv6, bind accepts either Ipv4 or Ipv6.  In our coding, we are
 // forcing it to Ipv6
 
@@ -182,6 +188,25 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
                 self.inner,
                 &mut sa as *mut T::Sockaddr as *mut c_void as *mut sockaddr,
                 mem::size_of::<T::Sockaddr>() as u32
+            )
+        };
+        if rval < 0 {
+            Err(errno::errno())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn shutdown(&mut self, shutdown: Shutdown) -> Result<(), Errno> {
+        let how = match shutdown {
+            Shutdown::Rd => SHUT_RD,
+            Shutdown::Wr => SHUT_WR,
+            Shutdown::RdWr => SHUT_RDWR,
+        };
+        let rval = unsafe {
+            usrsctp_shutdown(
+                self.inner,
+                how as i32
             )
         };
         if rval < 0 {

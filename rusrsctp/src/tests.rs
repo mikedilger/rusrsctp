@@ -144,6 +144,23 @@ fn connect6() {
 }
 
 #[test]
+fn shutdown() {
+    let sctp = UsrSctp::new(Some(9899));
+    {
+        let mut socket = sctp.socket::<Ipv6>(false).unwrap();
+        socket.set_non_blocking(true).unwrap();
+        match socket.connect(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 10000) {
+            Ok(_) => (), // unlikely, but not a failure
+            Err(e) => {
+                let ei: i32 = e.into();
+                assert_eq!(ei as u32, EINPROGRESS);
+            }
+        }
+        socket.shutdown(Shutdown::RdWr).unwrap();
+    }
+}
+
+#[test]
 fn non_blocking() {
     let sctp = UsrSctp::new(Some(9899));
     {
