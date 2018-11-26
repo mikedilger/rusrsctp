@@ -66,11 +66,11 @@ extern crate bitflags;
 
 use std::marker::PhantomData;
 use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
-use std::os::raw::c_int;
+use std::os::raw::{c_int, c_void};
 use std::ptr;
-use std::mem;
 use std::thread;
 use std::time;
+use std::mem;
 use errno::Errno;
 use rusrsctp_sys::*;
 
@@ -188,7 +188,6 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
     pub fn bind(&mut self, addr: T::Addr, port: u16) -> Result<(), Errno> {
         let mut sa = T::to_sockaddr(addr, port);
         let rval = unsafe {
-            use ::std::os::raw::c_void;
             // We cannot transmute, we have to pass the pointer through the void.C world did.
             usrsctp_bind(
                 self.inner,
@@ -222,7 +221,6 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
         let mut sa: T::Sockaddr = T::to_sockaddr_wildcard();
         let mut sa_len: u32 = 0;
         let so = unsafe {
-            use ::std::os::raw::c_void;
             // We cannot transmute, we have to pass the pointer through the void.C world did.
             usrsctp_accept(
                 self.inner,
@@ -244,7 +242,6 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
     pub fn connect(&mut self, addr: T::Addr, port: u16) -> Result<(), Errno> {
         let mut sa = T::to_sockaddr(addr, port);
         let rval = unsafe {
-            use ::std::os::raw::c_void;
             // We cannot transmute, we have to pass the pointer through the void.C world did.
             usrsctp_connect(
                 self.inner,
@@ -303,6 +300,82 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
             Ok(true)
         } else {
             Ok(false)
+        }
+    }
+
+    /// Send data.
+    /// NOTE: usrsctp limits addr to zero or one.  SCTP itself allows multiple
+    /// addresses.  So we are limited by `usrsctp` on that point.
+    pub fn sendv(&mut self,
+                 data: &[u8],
+                 addr: Option<(T::Addr, u16)>,
+                 snd_info: Option<SndInfo>,
+                 pr_info: Option<PrInfo>,
+                 auth_info: Option<AuthInfo>,
+                 flags: MsgFlags) -> Result<usize, Errno>
+    {
+        let sa = addr.map(|(addr,port)| {
+            T::to_sockaddr(addr, port)
+        });
+        let addrcnt: i32 = if sa.is_some() { 1 } else { 0 };
+
+        let infotype = if auth_info.is_some() || (snd_info.is_some() && pr_info.is_some()) {
+            SCTP_SENDV_SPA
+        } else if snd_info.is_some() {
+            SCTP_SENDV_SNDINFO
+        } else if pr_info.is_some() {
+            SCTP_SENDV_PRINFO
+        } else {
+            SCTP_SENDV_NOINFO
+        };
+
+        // Build the sctp_sendv_spa structure
+        // Even if we don't use full spa, we will use internal fields
+        let mut spa_flags: u32 = 0;
+        if snd_info.is_some() { spa_flags |= SCTP_SEND_SNDINFO_VALID; }
+        if pr_info.is_some() { spa_flags |= SCTP_SEND_PRINFO_VALID; }
+        if auth_info.is_some() { spa_flags |= SCTP_SEND_AUTHINFO_VALID; }
+        let mut spa = sctp_sendv_spa {
+            sendv_flags: spa_flags,
+            sendv_sndinfo: snd_info.unwrap_or_default()
+                .into_sctp_sndinfo(),
+            sendv_prinfo: pr_info.unwrap_or_default()
+                .into_sctp_prinfo(),
+            sendv_authinfo: auth_info.unwrap_or(sctp_authinfo {
+                    auth_keynumber: 0
+                })
+        };
+
+        let (infoptr, infolen) = match infotype {
+            SCTP_SENDV_SPA => (&mut spa as *mut sctp_sendv_spa as *mut c_void,
+                               mem::size_of::<sctp_sendv_spa>()),
+            SCTP_SENDV_SNDINFO => (&mut spa.sendv_sndinfo as *mut sctp_sndinfo as *mut c_void,
+                                   mem::size_of::<sctp_sndinfo>()),
+            SCTP_SENDV_PRINFO => (&mut spa.sendv_prinfo as *mut sctp_prinfo as *mut c_void,
+                                  mem::size_of::<sctp_prinfo>()),
+            SCTP_SENDV_NOINFO => (ptr::null_mut(), 0),
+            _ => unreachable!()
+        };
+
+        let rval = unsafe {
+            usrsctp_sendv(
+                self.inner,
+                data.as_ptr() as *const c_void,
+                data.len(), // * mem::size_of<u8>() which is 1
+                match sa {
+                    Some(mut s) => &mut s as *mut T::Sockaddr as *mut c_void as *mut sockaddr,
+                    None => ptr::null_mut(),
+                },
+                addrcnt,
+                infoptr,
+                infolen as u32,
+                infotype,
+                flags.bits() as i32)
+        };
+        if rval < 0 {
+            Err(errno::errno())
+        } else {
+            Ok(rval as usize)
         }
     }
 }

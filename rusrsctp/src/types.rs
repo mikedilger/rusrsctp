@@ -110,6 +110,18 @@ impl SndInfo {
     }
 }
 
+impl Default for SndInfo {
+    fn default() -> SndInfo {
+        SndInfo {
+            sid: 0,
+            flags: SctpFlags::empty(),
+            ppid: 0,
+            context: 0,
+            assoc_id: 0
+        }
+    }
+}
+
 /// Partially Reliable Policy (RFC3758)
 #[repr(u16)]
 pub enum PrPolicy {
@@ -123,8 +135,8 @@ pub enum PrPolicy {
 
 // this is bitwise the same as sctp_prinfo but with cleaner rust types
 pub struct PrInfo {
-    pub pr_policy: PrPolicy,
-    pub pr_value: u32
+    pub policy: PrPolicy,
+    pub value: u32
 }
 
 impl PrInfo {
@@ -132,6 +144,15 @@ impl PrInfo {
     pub fn into_sctp_prinfo(self) -> sctp_prinfo {
         unsafe {
             mem::transmute::<PrInfo, sctp_prinfo>(self)
+        }
+    }
+}
+
+impl Default for PrInfo {
+    fn default() -> PrInfo {
+        PrInfo {
+            policy: PrPolicy::None,
+            value: 0,
         }
     }
 }
