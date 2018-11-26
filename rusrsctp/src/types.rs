@@ -1,4 +1,5 @@
 
+use std::mem;
 use rusrsctp_sys::*;
 
 #[derive(Debug, Copy, Clone)]
@@ -83,3 +84,56 @@ bitflags! {
         const SACK_IMMEDIATELY = SCTP_SACK_IMMEDIATELY as u16;
     }
 }
+
+pub type AssocId = sctp_assoc_t;
+
+// this is bitwise the same as sctp_sndinfo but with cleaner rust types
+pub struct SndInfo {
+    /// Stream number
+    pub sid: u16,
+    /// Send flags. Useful ones are UNORDERED, ADDR_OVER, ABORT, EOF, and SENDALL
+    pub flags: SctpFlags,
+    /// value passed to remote (SCTP stack does no byte order modification of this)
+    pub ppid: u32,
+    /// opaque value passed back to upper layer if an error occurs.
+    pub context: u32,
+    /// Association handle field. Ignored in one-to-one style sockets.
+    pub assoc_id: AssocId,
+}
+
+impl SndInfo {
+    #[inline]
+    pub fn into_sctp_sndinfo(self) -> sctp_sndinfo {
+        unsafe {
+            mem::transmute::<SndInfo, sctp_sndinfo>(self)
+        }
+    }
+}
+
+/// Partially Reliable Policy (RFC3758)
+#[repr(u16)]
+pub enum PrPolicy {
+    /// None indicates reliable transmission
+    None = 0,
+    /// Timed reliability
+    Ttl = 1,
+    Buf = 2,
+    Rtx = 3,
+}
+
+// this is bitwise the same as sctp_prinfo but with cleaner rust types
+pub struct PrInfo {
+    pub pr_policy: PrPolicy,
+    pub pr_value: u32
+}
+
+impl PrInfo {
+    #[inline]
+    pub fn into_sctp_prinfo(self) -> sctp_prinfo {
+        unsafe {
+            mem::transmute::<PrInfo, sctp_prinfo>(self)
+        }
+    }
+}
+
+pub type AuthInfo = sctp_authinfo;
