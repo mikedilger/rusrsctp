@@ -61,6 +61,7 @@
 
 extern crate errno;
 extern crate rusrsctp_sys;
+extern crate bitflags;
 
 use std::marker::PhantomData;
 use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
