@@ -185,7 +185,7 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
     pub fn bind(&mut self, addr: T::Addr, port: u16) -> Result<(), Errno> {
         let mut sa = T::to_sockaddr(addr, port);
         let rval = unsafe {
-            // We cannot transmute, we have to pass the pointer through the void.C world did.
+            // We cannot transmute, we have to pass the pointer through the void.
             usrsctp_bind(
                 self.inner,
                 &mut sa as *mut T::Sockaddr as *mut c_void as *mut sockaddr,
@@ -218,7 +218,7 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
         let mut sa: T::Sockaddr = T::to_sockaddr_wildcard();
         let mut sa_len: u32 = 0;
         let so = unsafe {
-            // We cannot transmute, we have to pass the pointer through the void.C world did.
+            // We cannot transmute, we have to pass the pointer through the void.
             usrsctp_accept(
                 self.inner,
                 &mut sa as *mut T::Sockaddr as *mut c_void as *mut sockaddr,
@@ -239,7 +239,7 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
     pub fn connect(&mut self, addr: T::Addr, port: u16) -> Result<(), Errno> {
         let mut sa = T::to_sockaddr(addr, port);
         let rval = unsafe {
-            // We cannot transmute, we have to pass the pointer through the void.C world did.
+            // We cannot transmute, we have to pass the pointer through the void.
             usrsctp_connect(
                 self.inner,
                 &mut sa as *mut T::Sockaddr as *mut c_void as *mut sockaddr,
