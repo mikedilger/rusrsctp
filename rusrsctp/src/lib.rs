@@ -181,9 +181,6 @@ impl<'a, T: 'a + Ip> Drop for Socket<'a, T> {
     }
 }
 
-// fixme: for Ipv6, bind accepts either Ipv4 or Ipv6.  In our coding, we are
-// forcing it to Ipv6
-
 impl<'a, T: 'a + Ip> Socket<'a, T> {
     pub fn bind(&mut self, addr: T::Addr, port: u16) -> Result<(), Errno> {
         let mut sa = T::to_sockaddr(addr, port);
