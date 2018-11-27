@@ -215,9 +215,9 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
 
     pub fn accept(&mut self) -> Result<(T::Addr, u16, Socket<'a, T>), Errno> {
         // space for return value
-        let mut sa: T::Sockaddr = T::to_sockaddr_wildcard();
-        let mut sa_len: u32 = 0;
-        let so = unsafe {
+        let mut sa: T::Sockaddr = T::to_sockaddr_wildcard(); // gets filled
+        let mut sa_len: u32 = mem::size_of::<T::Sockaddr>() as u32; // gets filled
+        let rval = unsafe {
             // We cannot transmute, we have to pass the pointer through the void.
             usrsctp_accept(
                 self.inner,
@@ -225,12 +225,13 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
                 &mut sa_len as *mut u32
             )
         };
-        if so.is_null() {
+        if rval.is_null() {
             Err(errno::errno())
         } else {
+            assert_eq!(sa_len, mem::size_of::<T::Sockaddr>() as u32);
             let (addr, port) = T::from_sockaddr(sa);
             Ok((addr, port, Socket {
-                inner: so,
+                inner: rval,
                 _ip: PhantomData,
             }))
         }

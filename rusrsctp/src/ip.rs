@@ -13,10 +13,10 @@ fn u16be(v: u16) -> u16 {
 
 fn u32be(v: u32) -> u32 {
     if cfg!(target_endian = "little") {
-        ((v & 0x000000FF) << 24)
-            | ((v & 0x0000FF00) << 8)
-            | ((v & 0x00FF0000) >> 8)
-            | ((v & 0xFF000000) >> 24)
+        ((v & 0x0000_00FF) << 24)
+            | ((v & 0x0000_FF00) << 8)
+            | ((v & 0x00FF_0000) >> 8)
+            | ((v & 0xFF00_0000) >> 24)
     } else {
         v
     }
@@ -59,8 +59,8 @@ impl Ip for Ipv6 {
     fn pf() -> i32 { PF_INET6 as i32 }
     fn to_sockaddr(addr: Self::Addr, port: u16) -> Self::Sockaddr {
         let mut segments = addr.segments();
-        for i in 0..8 {
-            segments[i] = u16be(segments[i]); // convert to big endian
+        for i in segments.iter_mut() {
+            *i = u16be(*i); // convert to big endian
         }
         sockaddr_in6 {
             sin6_family: AF_INET6 as u16,

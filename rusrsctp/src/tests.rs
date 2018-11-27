@@ -175,38 +175,54 @@ fn non_blocking() {
 #[test]
 fn test_sendv_1() {
     use std::thread;
-    use std::sync::Arc;
+    use std::sync::{Arc, Barrier};
 
-    let arcsctp = {
+    let csctp = {
         let sctp = UsrSctp::new(Some(9899));
         Arc::new(sctp)
     };
-    let sarcsctp = arcsctp.clone();
+    let ssctp = csctp.clone();
+
+    let cbarrier = Arc::new(Barrier::new(2));
+    let sbarrier = cbarrier.clone();
+
+    let cipaddr = Ipv4Addr::new(127, 0, 0, 1);
+    let sipaddr = cipaddr.clone();
+    let cport: u16 = 8005;
+    let sport = cport.clone();
+
 
     let _server_thread = thread::spawn(move || {
-        // Server runs here
-        let mut server_socket = sarcsctp.socket::<Ipv4>(false).unwrap();
-        println!("SVR SOCKET");
-        server_socket.bind(Ipv4Addr::new(127, 0, 0, 1), 8005).unwrap();
-        println!("SVR BOUND");
+        let mut server_socket = ssctp.socket::<Ipv4>(false).unwrap();
+        server_socket.bind(sipaddr, sport).unwrap();
         server_socket.listen(1).unwrap();
-        println!("SVR LISTENING");
-        let _client = server_socket.accept().unwrap();
-        println!("SVR ACCEPTED");
-        // Stay alive for a sec...
-        ::std::thread::sleep(::std::time::Duration::from_secs(10));
+
+        sbarrier.wait(); // --------
+        println!("sBARRIER1");
+
+        let _client = match server_socket.accept() {
+            Ok(c) => c,
+            Err(e) => panic!("Server not accepting client: {}", e.0),
+        };
+        println!("sACCEPTED");
+
+        sbarrier.wait(); // --------
+        println!("sBARRIER2");
+
+        // TBD...
         // or do a recvv() here
     });
 
-    // Wait for the server to be setup before diving ahead
+    let mut client_socket = csctp.socket::<Ipv4>(false).unwrap();
+    cbarrier.wait(); // --------
+    println!("cBARRIER1");
     ::std::thread::sleep(::std::time::Duration::from_secs(1));
 
-    // Client runs here
-    let mut client_socket = arcsctp.socket::<Ipv4>(false).unwrap();
-    println!("CLN SOCKET");
-    client_socket.connect(Ipv4Addr::new(127, 0, 0, 1), 8005).unwrap();
-    println!("CLN CONNECTED");
-    // FIXME -- IT IS NOT GETTING HERE!
+    client_socket.connect(cipaddr, cport).unwrap();
+    panic!("CLIENT CONNECTED! KEEP CALM AND CARRY ON");
+    cbarrier.wait(); // --------
+    println!("cBARRIER2");
+
     let len = client_socket.sendv(
         "Hello".as_bytes(),
         None, // addr not needed, we are connected
@@ -221,9 +237,7 @@ fn test_sendv_1() {
         None,
         MsgFlags::empty()
     ).unwrap();
-    println!("CLN SENT");
     assert_eq!(len, 5);
-    println!("CLN FINISHED");
 
     // the server would keep going, we are just going to let it drop hard
     // let _ = server_thread.join();
