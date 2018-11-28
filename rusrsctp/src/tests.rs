@@ -5,7 +5,7 @@ use super::*;
 #[test]
 fn setup_and_teardown4() {
     {
-        let sctp = UsrSctp::new(Some(9899));
+        let sctp = UsrSctp::new(Some(9899), true);
         {
             let _socket = sctp.socket::<Ipv4>(false).unwrap();
         } // socket drops here
@@ -16,7 +16,7 @@ fn setup_and_teardown4() {
 #[test]
 fn setup_and_teardown6() {
     {
-        let sctp = UsrSctp::new(Some(9899));
+        let sctp = UsrSctp::new(Some(9899), true);
         {
             let _socket = sctp.socket::<Ipv6>(false).unwrap();
         } // socket drops here
@@ -29,7 +29,7 @@ fn setup_and_teardown6() {
 #[should_fail_to_compile(expected = "error[E0597]: `sctp` does not live long enough")]
 fn test_socket_outlive_usrsctp() {
     let socket = {
-        let sctp = UsrSctp::new(Some(9899));
+        let sctp = UsrSctp::new(Some(9899), true);
         sctp.socket::<Ipv4>(false).unwrap()
     };
     assert!(true)
@@ -38,7 +38,7 @@ fn test_socket_outlive_usrsctp() {
 
 #[test]
 fn bind4() {
-    let sctp = UsrSctp::new(Some(9899));
+    let sctp = UsrSctp::new(Some(9899), true);
     {
         let mut socket = sctp.socket::<Ipv4>(false).unwrap();
         socket.bind(Ipv4Addr::new(0, 0, 0, 0), 0).unwrap(); // wildcard addr and port
@@ -47,7 +47,7 @@ fn bind4() {
 
 #[test]
 fn bind6() {
-    let sctp = UsrSctp::new(Some(9899));
+    let sctp = UsrSctp::new(Some(9899), true);
     {
         let mut socket = sctp.socket::<Ipv6>(false).unwrap();
         socket.bind(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap(); // wildcard addr and port
@@ -56,7 +56,7 @@ fn bind6() {
 
 #[test]
 fn listen4() {
-    let sctp = UsrSctp::new(Some(9899));
+    let sctp = UsrSctp::new(Some(9899), true);
     {
         let mut socket = sctp.socket::<Ipv4>(true).unwrap();
         socket.bind(Ipv4Addr::new(0, 0, 0, 0), 0).unwrap(); // wildcard addr and port
@@ -67,7 +67,7 @@ fn listen4() {
 
 #[test]
 fn listen6() {
-    let sctp = UsrSctp::new(Some(9899));
+    let sctp = UsrSctp::new(Some(9899), true);
     {
         let mut socket = sctp.socket::<Ipv6>(true).unwrap();
         socket.bind(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap(); // wildcard addr and port
@@ -77,7 +77,7 @@ fn listen6() {
 
 #[test]
 fn accept4() {
-    let sctp = UsrSctp::new(Some(9899));
+    let sctp = UsrSctp::new(Some(9899), true);
     {
         let mut socket = sctp.socket::<Ipv4>(false).unwrap();
         socket.set_non_blocking(true).unwrap();
@@ -95,7 +95,7 @@ fn accept4() {
 
 #[test]
 fn accept6() {
-    let sctp = UsrSctp::new(Some(9899));
+    let sctp = UsrSctp::new(Some(9899), true);
     {
         let mut socket = sctp.socket::<Ipv6>(false).unwrap();
         socket.set_non_blocking(true).unwrap();
@@ -113,7 +113,7 @@ fn accept6() {
 
 #[test]
 fn connect4() {
-    let sctp = UsrSctp::new(Some(9899));
+    let sctp = UsrSctp::new(Some(9899), true);
     {
         let mut socket = sctp.socket::<Ipv4>(false).unwrap();
         socket.set_non_blocking(true).unwrap();
@@ -129,7 +129,7 @@ fn connect4() {
 
 #[test]
 fn connect6() {
-    let sctp = UsrSctp::new(Some(9899));
+    let sctp = UsrSctp::new(Some(9899), true);
     {
         let mut socket = sctp.socket::<Ipv6>(false).unwrap();
         socket.set_non_blocking(true).unwrap();
@@ -145,7 +145,7 @@ fn connect6() {
 
 #[test]
 fn shutdown() {
-    let sctp = UsrSctp::new(Some(9899));
+    let sctp = UsrSctp::new(Some(9899), true);
     {
         let mut socket = sctp.socket::<Ipv6>(false).unwrap();
         socket.set_non_blocking(true).unwrap();
@@ -162,7 +162,7 @@ fn shutdown() {
 
 #[test]
 fn non_blocking() {
-    let sctp = UsrSctp::new(Some(9899));
+    let sctp = UsrSctp::new(Some(9899), true);
     {
         let mut socket = sctp.socket::<Ipv4>(true).unwrap();
         socket.set_non_blocking(true).unwrap();

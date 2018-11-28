@@ -12,7 +12,7 @@
 //! # use std::net::Ipv6Addr;
 //! # fn main() {
 //! /// Start SCTP over the IANA-assigned tunnelling port
-//! let sctp = UsrSctp::new(Some(9899));
+//! let sctp = UsrSctp::new(Some(9899), true);
 //!
 //! // Create an IPv6 socket in one-to-one mode
 //! let mut socket = sctp.socket::<Ipv6>(false).unwrap();
@@ -43,7 +43,7 @@
 //! # use std::net::Ipv6Addr;
 //! # fn main() {
 //! /// Start SCTP over the IANA-assigned tunnelling port
-//! let sctp = UsrSctp::new(Some(9899));
+//! let sctp = UsrSctp::new(Some(9899), true);
 //!
 //! // Create an IPv6 socket in one-to-one mode
 //! let mut socket = sctp.socket::<Ipv6>(false).unwrap();
@@ -66,7 +66,7 @@ extern crate bitflags;
 
 use std::marker::PhantomData;
 use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
-use std::os::raw::{c_int, c_void};
+use std::os::raw::{c_int, c_void, c_char};
 use std::ptr;
 use std::thread;
 use std::time;
@@ -111,6 +111,11 @@ pub fn ntohl(v: u32) -> u32 {
     }
 }
 
+extern "C" {
+    // we define this w/ no return val to match what usrsctp expects for debugprint
+    pub fn printf(format: *const c_char, ...);
+}
+
 pub struct UsrSctp {}
 
 /// An object representing the SCTP networking system.
@@ -123,7 +128,7 @@ impl UsrSctp {
     /// own notion of ports independent of this UDP layer port.
     /// If another thread (or the current one) already started SCTP, `port` will
     /// be ignored and the already setup SCTP will be used.
-    pub fn new(port: Option<u16>) -> UsrSctp
+    pub fn new(port: Option<u16>, inner_debug: bool) -> UsrSctp
     {
         // If it was 0, make it 1 and enter this block
         if REFCOUNT.fetch_add(1, Ordering::SeqCst) == 0 {
@@ -131,7 +136,11 @@ impl UsrSctp {
             unsafe {
                 usrsctp_init(port.unwrap_or(0),
                              None, // conn_output not supported (yet)
-                             None); // debug_printf not supported (yet)
+                             if inner_debug {
+                                 Some(printf)
+                             } else {
+                                 None
+                             }); // debug_printf using C printf()
             }
             INITIALIZED.store(true, Ordering::SeqCst);
         } else {
