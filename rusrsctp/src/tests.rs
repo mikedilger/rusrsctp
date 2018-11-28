@@ -171,3 +171,18 @@ fn non_blocking() {
         assert_eq!(socket.get_non_blocking().unwrap(), false);
     }
 }
+
+#[test]
+fn set_remote_encaps_port() {
+    let sctp = UsrSctp::new(Some(9899), true);
+    let mut socket = sctp.socket::<Ipv4>(true).unwrap();
+    socket.setsockopt(RemoteUdpEncapsPort(sctp_udpencaps {
+        sue_address: sockaddr_storage {
+            ss_family: AF_INET as sa_family_t,
+            __ss_padding: [0; 118],
+            __ss_align: 0,
+        },
+        sue_assoc_id: 0,
+        sue_port: htons(9898)
+    })).unwrap()
+}

@@ -83,6 +83,9 @@ pub use self::ip::*;
 mod types;
 pub use self::types::*;
 
+mod option;
+pub use self::option::*;
+
 static SOCK_STREAM: c_int = 1;
 static SOCK_SEQPACKET: c_int = 5;
 
@@ -327,6 +330,24 @@ impl<'a, T: 'a + Ip> Socket<'a, T> {
             Ok(true)
         } else {
             Ok(false)
+        }
+    }
+
+    pub fn setsockopt<O: SctpOption>(&mut self, option: O) -> Result<(), Errno>
+    {
+        let rval = unsafe {
+            usrsctp_setsockopt(
+                self.inner,
+                IPPROTO_SCTP as i32,
+                option.c_name(),
+                option.value_ptr() as *const O::Value as *const c_void,
+                option.value_size()
+            )
+        };
+        if rval < 0 {
+            Err(errno::errno())
+        } else {
+            Ok(())
         }
     }
 
