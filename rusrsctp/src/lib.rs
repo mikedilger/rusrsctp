@@ -90,6 +90,27 @@ static REFCOUNT: AtomicUsize = AtomicUsize::new(0);
 // We set this true AFTER intialization is complete (we bump REFCOUNT before)
 static INITIALIZED: AtomicBool = AtomicBool::new(false);
 
+pub fn htons(v: u16) -> u16 {
+    unsafe {
+        rusrsctp_sys::htons(v)
+    }
+}
+pub fn ntohs(v: u16) -> u16 {
+    unsafe {
+        rusrsctp_sys::ntohs(v)
+    }
+}
+pub fn htonl(v: u32) -> u32 {
+    unsafe {
+        rusrsctp_sys::htonl(v)
+    }
+}
+pub fn ntohl(v: u32) -> u32 {
+    unsafe {
+        rusrsctp_sys::ntohl(v)
+    }
+}
+
 pub struct UsrSctp {}
 
 /// An object representing the SCTP networking system.
